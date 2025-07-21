@@ -16,13 +16,49 @@
  * 
  * Optional Challenge: Use a trigger handler class to implement the trigger logic.
  */
-trigger ContactTrigger on Contact(before insert) {
+
+trigger ContactTrigger on Contact (before insert, after insert, after update) {
+	// BEFORE INSERT - Assign DummyJSON_Id__c if null
 	// When a contact is inserted
 	// if DummyJSON_Id__c is null, generate a random number between 0 and 100 and set this as the contact's DummyJSON_Id__c value
+	if (Trigger.isBefore && Trigger.isInsert) {
+		for (Contact c : Trigger.new) {
+			if (c.DummyJSON_Id__c == null) {
+				c.DummyJSON_Id__c = String.valueOf(Math.floor(Math.random() * 101)); 
+				}
+		}
+	}
 
-	//When a contact is inserted
+	// AFTER INSERT - Fetch user data from DummyJSON if ID <= 100
+	// When a contact is inserted
 	// if DummyJSON_Id__c is less than or equal to 100, call the getDummyJSONUserFromId API
+	if (Trigger.isAfter && Trigger.isInsert) {
+		List<Integer> validIds = new List<Integer>();
+		Map<Integer, Id> dummyIdToContactMap = new Map<Integer, Id>();
 
-	//When a contact is updated
+		for (Contact c : Trigger.new) {
+			if (c.DummyJSON_Id__c != null && Integer.valueOf(c.DummyJSON_Id__c) <= 100) {
+				validIds.add(Integer.valueOf(c.DummyJSON_Id__c));
+				dummyIdToContactMap.put(Integer.valueOf(c.DummyJSON_Id__c), c.Id);
+			}
+		}
+
+		for (Integer dummyId : validIds) {
+			Id contactId = dummyIdToContactMap.get(dummyId);
+			DummyJSONCallout.getDummyJSONUserFromId(String.valueOf(dummyId));
+		}
+	}
+
+	// AFTER UPDATE - Push to DummyJSON if ID > 100
+	// When a contact is updated
 	// if DummyJSON_Id__c is greater than 100, call the postCreateDummyJSONUser API
+	if (Trigger.isAfter && Trigger.isUpdate) {
+		for (Contact c : Trigger.new) {
+			Contact old = Trigger.oldMap.get(c.Id);
+			if (c.DummyJSON_Id__c != null && Integer.valueOf(c.DummyJSON_Id__c) > 100 && 
+				(old.DummyJSON_Id__c == null || old.DummyJSON_Id__c != c.DummyJSON_Id__c)) {
+				DummyJSONCallout.postCreateDummyJSONUser(c.Id);
+			}
+		}
+	}
 }
