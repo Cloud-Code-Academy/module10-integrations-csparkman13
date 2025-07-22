@@ -24,7 +24,7 @@ trigger ContactTrigger on Contact (before insert, after insert, after update) {
 	if (Trigger.isBefore && Trigger.isInsert) {
 		for (Contact c : Trigger.new) {
 			if (c.DummyJSON_Id__c == null) {
-				c.DummyJSON_Id__c = String.valueOf(Math.floor(Math.random() * 101)); 
+				c.DummyJSON_Id__c = String.valueOf((Integer)Math.floor(Math.random() * 101)); // Could also do: String.valueOf((Integer)Math.random() * 100) --- Would normally want this in a Handler.
 				}
 		}
 	}
@@ -34,7 +34,7 @@ trigger ContactTrigger on Contact (before insert, after insert, after update) {
 	// if DummyJSON_Id__c is less than or equal to 100, call the getDummyJSONUserFromId API
 	if (Trigger.isAfter && Trigger.isInsert) {
 		List<Integer> validIds = new List<Integer>();
-		Map<Integer, Id> dummyIdToContactMap = new Map<Integer, Id>();
+		Map<Integer, Id> dummyIdToContactMap = new Map<Integer, Id>(); // Do I need this?
 
 		for (Contact c : Trigger.new) {
 			if (c.DummyJSON_Id__c != null && Integer.valueOf(c.DummyJSON_Id__c) <= 100) {
@@ -53,6 +53,9 @@ trigger ContactTrigger on Contact (before insert, after insert, after update) {
 	// When a contact is updated
 	// if DummyJSON_Id__c is greater than 100, call the postCreateDummyJSONUser API
 	if (Trigger.isAfter && Trigger.isUpdate) {
+		if (System.isFuture()) { // If the code in DummyJSONCallout Class is being executed from a future method, exit the trigger (Line 56, 57)!  The reason we needed this line is because the class was looking at a Contact, updating it, and then re-starting the process all over again because of this After Update, thus causing an infinite loop.
+			return;
+		}
 		for (Contact c : Trigger.new) {
 			Contact old = Trigger.oldMap.get(c.Id);
 			if (c.DummyJSON_Id__c != null && Integer.valueOf(c.DummyJSON_Id__c) > 100 && 

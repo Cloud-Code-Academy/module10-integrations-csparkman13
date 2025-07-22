@@ -34,6 +34,7 @@
 			* @param dummyUserId The ID of the user in the external system to fetch data for.
 			*/
 
+			@future(callout=true)
 			public static void getDummyJSONUserFromId(String dummyUserId) {
 				// Create HTTP request to send.
 				try {
@@ -106,7 +107,7 @@
 				// Set the address fields on the contact.
 				Map<String, Object> addressMap = (Map<String, Object>) userMap.get('address');
 				if (addressMap != null) {
-					contact.MailingStreet = (String) addressMap.get('street');
+					contact.MailingStreet = (String) addressMap.get('address');
 					contact.MailingCity = (String) addressMap.get('city');
 					contact.MailingPostalCode = String.valueOf(addressMap.get('postalCode'));
 					contact.MailingState = (String) addressMap.get('state');
@@ -130,6 +131,7 @@
 			* @param contactId The Salesforce Contact ID used to generate the JSON payload for the external system.
 			*/
 			
+			@future(callout=true)
 			public static void postCreateDummyJSONUser(String contactId) {
 				try {
 				// Added - Query the contact to get the data we need
@@ -159,7 +161,7 @@
 					HttpResponse res = http.send(req);
 
 				// If the HTTP response code is successful, update the contact.
-					if (res.getStatusCode() > 200 && res.getStatusCode() < 300) {
+					if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
 						contact.DummyJSON_Last_Updated__c = System.now();
 						update contact;
 					} else {
